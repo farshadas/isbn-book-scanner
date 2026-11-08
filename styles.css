@@ -239,7 +239,8 @@ h2 {
   font-weight: 700;
 }
 
-.book-title {
+.book-title,
+.book-author {
   width: 100%;
   min-width: 0;
   padding: 0.2rem 0;
@@ -251,7 +252,15 @@ h2 {
   font-weight: 600;
 }
 
-.book-title:focus {
+.book-author {
+  margin-top: 0.12rem;
+  color: #5d6962;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.book-title:focus,
+.book-author:focus {
   border-bottom-color: #5f7d6e;
 }
 

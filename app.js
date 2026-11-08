@@ -155,13 +155,14 @@ async function addBook(isbn) {
   state.books.push({
     isbn,
     title: book?.title || "",
+    authors: book?.authors || "",
   });
 
   renderBooks();
   elements.scanButton.disabled = false;
   setStatus(
     book?.title
-      ? `Found “${book.title}.”`
+      ? `Found “${book.title}”${book.authors ? ` by ${book.authors}` : ""}.`
       : "No title was found. Type it into the list before opening the form.",
     !book?.title
   );
@@ -175,8 +176,13 @@ async function lookupBook(isbn) {
     );
     if (openLibraryResponse.ok) {
       const openLibraryData = await openLibraryResponse.json();
-      const title = openLibraryData[key]?.title;
-      if (title) return { title };
+      const record = openLibraryData[key];
+      if (record?.title) {
+        return {
+          title: record.title,
+          authors: record.authors?.map((author) => author.name).join(", ") || "",
+        };
+      }
     }
   } catch (error) {
     console.warn("Open Library lookup failed", error);
@@ -188,8 +194,13 @@ async function lookupBook(isbn) {
     );
     if (googleResponse.ok) {
       const googleData = await googleResponse.json();
-      const title = googleData.items?.[0]?.volumeInfo?.title;
-      if (title) return { title };
+      const volume = googleData.items?.[0]?.volumeInfo;
+      if (volume?.title) {
+        return {
+          title: volume.title,
+          authors: volume.authors?.join(", ") || "",
+        };
+      }
     }
   } catch (error) {
     console.warn("Google Books lookup failed", error);
@@ -221,10 +232,20 @@ function renderBooks() {
       updateFormButton();
     });
 
+    const authors = document.createElement("input");
+    authors.className = "book-author";
+    authors.type = "text";
+    authors.value = book.authors;
+    authors.placeholder = "Type author";
+    authors.setAttribute("aria-label", `Book ${index + 1} author`);
+    authors.addEventListener("input", (event) => {
+      state.books[index].authors = event.target.value;
+    });
+
     const isbn = document.createElement("span");
     isbn.className = "book-isbn";
     isbn.textContent = `ISBN ${book.isbn}`;
-    details.append(title, isbn);
+    details.append(title, authors, isbn);
 
     const remove = document.createElement("button");
     remove.className = "remove-button";
@@ -269,8 +290,8 @@ function openPrefilledForm() {
   url.searchParams.set("usp", "pp_url");
 
   state.books.forEach((book, index) => {
-    const title = book.title.trim();
-    if (title) url.searchParams.set(FORM_FIELDS[index], title);
+    const value = formatBookEntry(book);
+    if (value) url.searchParams.set(FORM_FIELDS[index], value);
   });
 
   window.location.href = url.toString();
@@ -281,6 +302,13 @@ function setStatus(message, isError = false) {
   elements.status.classList.toggle("error", isError);
 }
 
+function formatBookEntry(book) {
+  const title = book.title?.trim();
+  const authors = book.authors?.trim();
+  if (!title) return "";
+  return authors ? `${title} — ${authors}` : title;
+}
+
 window.isbnScanner = {
   normalizeIsbn,
   isValidIsbnLength,
@@ -289,7 +317,8 @@ window.isbnScanner = {
     const url = new URL(FORM_URL);
     url.searchParams.set("usp", "pp_url");
     books.slice(0, MAX_BOOKS).forEach((book, index) => {
-      if (book.title?.trim()) url.searchParams.set(FORM_FIELDS[index], book.title.trim());
+      const value = formatBookEntry(book);
+      if (value) url.searchParams.set(FORM_FIELDS[index], value);
     });
     return url.toString();
   },
