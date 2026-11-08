@@ -1,13 +1,6 @@
-const FORM_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLSdCtTHn1Oep3eFnlfVF6f9iRBu69BNU6KRT0GxSxPgw3U9kQw/viewform";
-const FORM_FIELDS = [
-  "entry.1619479579",
-  "entry.1371399774",
-  "entry.378340362",
-  "entry.1985276319",
-  "entry.631929317",
-];
-const MAX_BOOKS = FORM_FIELDS.length;
+const SUBMISSION_URL =
+  "https://script.google.com/macros/s/AKfycbxw-jbLFaeOmJippEuPtszxnqrtC1t4NhQ-XxrJoy_WBvvB6NE-dINl__TlArDWllyA/exec";
+const MAX_BOOKS = 5;
 
 const state = {
   books: [],
@@ -15,9 +8,14 @@ const state = {
   scannerKind: null,
   scanning: false,
   processing: false,
+  submitted: false,
 };
 
 const elements = {
+  studentForm: document.querySelector("#student-form"),
+  firstName: document.querySelector("#first-name"),
+  lastName: document.querySelector("#last-name"),
+  grade: document.querySelector("#grade"),
   reader: document.querySelector("#reader"),
   placeholder: document.querySelector("#scanner-placeholder"),
   scanButton: document.querySelector("#scan-button"),
@@ -26,14 +24,17 @@ const elements = {
   counter: document.querySelector("#counter"),
   booksSection: document.querySelector("#books-section"),
   bookList: document.querySelector("#book-list"),
-  formButton: document.querySelector("#form-button"),
+  submitButton: document.querySelector("#submit-button"),
+  resetButton: document.querySelector("#reset-button"),
+  submitStatus: document.querySelector("#submit-status"),
   manualForm: document.querySelector("#manual-form"),
   manualIsbn: document.querySelector("#manual-isbn"),
 };
 
 elements.scanButton.addEventListener("click", startScanner);
 elements.cancelScanButton.addEventListener("click", stopScanner);
-elements.formButton.addEventListener("click", openPrefilledForm);
+elements.submitButton.addEventListener("click", submitBookList);
+elements.resetButton.addEventListener("click", resetForNextStudent);
 elements.manualForm.addEventListener("submit", handleManualEntry);
 
 function normalizeIsbn(value) {
@@ -318,7 +319,7 @@ function renderBooks() {
     title.setAttribute("aria-label", `Book ${index + 1} title`);
     title.addEventListener("input", (event) => {
       state.books[index].title = event.target.value;
-      updateFormButton();
+      updateSubmitButton();
     });
 
     const authors = document.createElement("input");
@@ -369,24 +370,72 @@ function renderBooks() {
         : '<span aria-hidden="true">＋</span> Scan another book';
   }
 
-  updateFormButton();
+  updateSubmitButton();
 }
 
-function updateFormButton() {
-  elements.formButton.disabled =
+function updateSubmitButton() {
+  elements.submitButton.disabled =
     state.books.length === 0 || state.books.some((book) => !book.title.trim());
 }
 
-function openPrefilledForm() {
-  const url = new URL(FORM_URL);
-  url.searchParams.set("usp", "pp_url");
+async function submitBookList() {
+  if (!elements.studentForm.reportValidity()) {
+    elements.studentForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  if (state.books.length === 0 || state.submitted) return;
 
+  const payload = new URLSearchParams({
+    firstName: elements.firstName.value.trim(),
+    lastName: elements.lastName.value.trim(),
+    grade: elements.grade.value,
+  });
   state.books.forEach((book, index) => {
-    const value = formatBookEntry(book);
-    if (value) url.searchParams.set(FORM_FIELDS[index], value);
+    payload.set(`book${index + 1}`, formatBookEntry(book));
   });
 
-  window.location.href = url.toString();
+  elements.submitButton.disabled = true;
+  elements.submitButton.textContent = "Saving…";
+  elements.submitStatus.textContent = "";
+  elements.submitStatus.classList.remove("error");
+
+  try {
+    await fetch(SUBMISSION_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: payload,
+    });
+    state.submitted = true;
+    elements.submitButton.hidden = true;
+    elements.resetButton.hidden = false;
+    elements.submitStatus.textContent = `Saved for ${elements.firstName.value.trim()} in grade ${
+      elements.grade.value
+    }.`;
+  } catch (error) {
+    console.error(error);
+    elements.submitButton.disabled = false;
+    elements.submitButton.textContent = "Submit book list";
+    elements.submitStatus.textContent = "The list could not be saved. Check the connection and try again.";
+    elements.submitStatus.classList.add("error");
+  }
+}
+
+async function resetForNextStudent() {
+  await stopScanner();
+  state.books = [];
+  state.submitted = false;
+  elements.studentForm.reset();
+  elements.grade.value = "";
+  elements.manualForm.reset();
+  setStatus("");
+  elements.submitButton.hidden = false;
+  elements.submitButton.textContent = "Submit book list";
+  elements.resetButton.hidden = true;
+  elements.submitStatus.textContent = "";
+  elements.submitStatus.classList.remove("error");
+  renderBooks();
+  elements.firstName.focus();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function setStatus(message, isError = false) {
@@ -405,13 +454,5 @@ window.isbnScanner = {
   normalizeIsbn,
   isValidIsbnLength,
   lookupBook,
-  getPrefilledUrl(books) {
-    const url = new URL(FORM_URL);
-    url.searchParams.set("usp", "pp_url");
-    books.slice(0, MAX_BOOKS).forEach((book, index) => {
-      const value = formatBookEntry(book);
-      if (value) url.searchParams.set(FORM_FIELDS[index], value);
-    });
-    return url.toString();
-  },
+  formatBookEntry,
 };

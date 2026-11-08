@@ -73,6 +73,7 @@ h2 {
   line-height: 1.55;
 }
 
+.student-card,
 .scanner-card,
 .books-card {
   margin-top: 1rem;
@@ -82,6 +83,36 @@ h2 {
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 1.2rem 3rem rgba(35, 43, 39, 0.07);
   backdrop-filter: blur(12px);
+}
+
+.student-fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.student-fields label {
+  color: #31463b;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.student-fields input,
+.student-fields select {
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.35rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(19, 41, 31, 0.2);
+  border-radius: 0.75rem;
+  color: #193a2b;
+  background: #fff;
+  font: inherit;
+}
+
+.student-fields input:focus,
+.student-fields select:focus {
+  border-color: #5f7d6e;
+  outline: 0.18rem solid rgba(95, 125, 110, 0.18);
 }
 
 .section-heading {
@@ -192,6 +223,15 @@ h2 {
   width: auto;
   color: #193a2b;
   background: #dce9df;
+}
+
+.reset-button {
+  width: 100%;
+  margin-top: 0.65rem;
+}
+
+.submit-status {
+  font-weight: 700;
 }
 
 .button-quiet {
@@ -342,8 +382,17 @@ h2 {
     padding-left: 1.5rem;
   }
 
+  .student-card,
   .scanner-card,
   .books-card {
     padding: 1.5rem;
+  }
+
+  .student-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-fields label:last-child {
+    grid-column: 1 / -1;
   }
 }
