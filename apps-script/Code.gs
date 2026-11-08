@@ -1,17 +1,16 @@
 const GRADE_TABS = Object.freeze({
-  K: "K",
-  1: "1",
-  2: "2",
-  3: "3",
-  4: "4",
-  5: "5",
-  6: "6",
-  7: "7",
-  8: "8",
+  K: "Kinder",
+  1: "Grade 1",
+  2: "Grade 2",
+  3: "Grade 3",
+  4: "Grade 4",
+  5: "Grade 5",
+  6: "Grade 6",
+  7: "Grade 7",
+  8: "Grade 8",
 });
 
 const HEADERS = [
-  "Timestamp",
   "Student first name",
   "Student last name",
   "Grade",
@@ -20,6 +19,7 @@ const HEADERS = [
   "Book 3",
   "Book 4",
   "Book 5",
+  "Timestamp",
 ];
 
 function setupGradeSheets() {
@@ -31,15 +31,21 @@ function setupGradeSheets() {
 function doPost(event) {
   try {
     const payload = event?.parameter || {};
-    const firstName = cleanCell_(payload.firstName);
-    const lastName = cleanCell_(payload.lastName);
     const grade = String(payload.grade || "").trim();
-    const books = [1, 2, 3, 4, 5].map((number) => cleanCell_(payload[`book${number}`]));
+    const values = {
+      "Student first name": cleanCell_(payload.firstName),
+      "Student last name": cleanCell_(payload.lastName),
+      Grade: grade,
+      Timestamp: new Date(),
+    };
+    [1, 2, 3, 4, 5].forEach((number) => {
+      values[`Book ${number}`] = cleanCell_(payload[`book${number}`]);
+    });
 
-    if (!firstName || !lastName || !GRADE_TABS[grade]) {
+    if (!values["Student first name"] || !values["Student last name"] || !GRADE_TABS[grade]) {
       return jsonResponse_({ ok: false, error: "Missing or invalid student information." });
     }
-    if (!books.some(Boolean)) {
+    if (![1, 2, 3, 4, 5].some((number) => values[`Book ${number}`])) {
       return jsonResponse_({ ok: false, error: "At least one book is required." });
     }
 
@@ -50,8 +56,7 @@ function doPost(event) {
     lock.waitLock(10000);
     try {
       const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-      const sheet = getOrCreateSheet_(spreadsheet, GRADE_TABS[grade]);
-      sheet.appendRow([new Date(), firstName, lastName, grade, ...books]);
+      insertSorted_(getOrCreateSheet_(spreadsheet, GRADE_TABS[grade]), values);
     } finally {
       lock.releaseLock();
     }
@@ -61,6 +66,33 @@ function doPost(event) {
     console.error(error);
     return jsonResponse_({ ok: false, error: "The submission could not be saved." });
   }
+}
+
+function insertSorted_(sheet, values) {
+  const width = Math.max(sheet.getLastColumn(), HEADERS.length);
+  const headers = sheet.getRange(1, 1, 1, width).getValues()[0].map((header) => String(header).trim());
+  const row = headers.map((header) => (header in values ? values[header] : ""));
+  const firstCol = headers.indexOf("Student first name") + 1;
+  const lastCol = headers.indexOf("Student last name") + 1;
+  const newKey = sortKey_(values["Student first name"], values["Student last name"]);
+
+  let targetRow = sheet.getLastRow() + 1;
+  if (firstCol > 0 && sheet.getLastRow() > 1) {
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, width).getValues();
+    const index = data.findIndex(
+      (existing) =>
+        sortKey_(existing[firstCol - 1], lastCol > 0 ? existing[lastCol - 1] : "").localeCompare(newKey) > 0
+    );
+    if (index >= 0) {
+      targetRow = index + 2;
+      sheet.insertRowBefore(targetRow);
+    }
+  }
+  sheet.getRange(targetRow, 1, 1, width).setValues([row]);
+}
+
+function sortKey_(firstName, lastName) {
+  return `${String(firstName || "").trim().toLowerCase()}\u0000${String(lastName || "").trim().toLowerCase()}`;
 }
 
 function getOrCreateSheet_(spreadsheet, tabName) {
