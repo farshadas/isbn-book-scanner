@@ -96,9 +96,31 @@ async function handleScanSuccess(decodedText) {
     return;
   }
 
-  await stopScanner();
+  try {
+    state.scanner?.pause(true);
+  } catch (error) {
+    console.warn("Could not pause scanner", error);
+  }
+
   await addBook(isbn);
   state.processing = false;
+
+  if (state.books.length >= MAX_BOOKS) {
+    await stopScanner();
+    renderBooks();
+    setStatus("Five books are ready. Open the filled Google Form.");
+    return;
+  }
+
+  window.setTimeout(() => {
+    if (!state.scanning || state.processing || state.books.length >= MAX_BOOKS) return;
+    try {
+      state.scanner?.resume();
+    } catch (error) {
+      console.warn("Could not resume scanner", error);
+      setStatus("Tap Cancel scan, then start the camera again.", true);
+    }
+  }, 900);
 }
 
 async function stopScanner() {
@@ -124,8 +146,8 @@ async function resetScanner() {
   state.scanner = null;
   state.scanning = false;
   elements.reader.hidden = true;
-  elements.placeholder.hidden = false;
-  elements.scanButton.hidden = false;
+  elements.placeholder.hidden = state.books.length >= MAX_BOOKS;
+  elements.scanButton.hidden = state.books.length >= MAX_BOOKS;
   elements.cancelScanButton.hidden = true;
 }
 
@@ -144,7 +166,7 @@ async function handleManualEntry(event) {
 async function addBook(isbn) {
   if (state.books.length >= MAX_BOOKS) return;
   if (state.books.some((book) => book.isbn === isbn)) {
-    setStatus("That book is already in the list.", true);
+    setStatus("That book is already in the list. Point the camera at the next book.", true);
     return;
   }
 
@@ -162,7 +184,9 @@ async function addBook(isbn) {
   elements.scanButton.disabled = false;
   setStatus(
     book?.title
-      ? `Found “${book.title}”${book.authors ? ` by ${book.authors}` : ""}.`
+      ? `Found “${book.title}”${book.authors ? ` by ${book.authors}` : ""}.${
+          state.books.length < MAX_BOOKS ? " Point the camera at the next book." : ""
+        }`
       : "No title was found. Type it into the list before opening the form.",
     !book?.title
   );
@@ -266,6 +290,9 @@ function renderBooks() {
   elements.booksSection.hidden = state.books.length === 0;
 
   if (state.books.length >= MAX_BOOKS) {
+    elements.scanButton.hidden = true;
+    elements.placeholder.hidden = true;
+  } else if (state.scanning) {
     elements.scanButton.hidden = true;
     elements.placeholder.hidden = true;
   } else {
