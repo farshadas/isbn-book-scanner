@@ -157,6 +157,10 @@ h2 {
 }
 
 #reader video {
+  display: block;
+  width: 100%;
+  min-height: 15rem;
+  object-fit: cover;
   border-radius: 1rem;
 }
 

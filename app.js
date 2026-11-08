@@ -12,6 +12,7 @@ const MAX_BOOKS = FORM_FIELDS.length;
 const state = {
   books: [],
   scanner: null,
+  scannerKind: null,
   scanning: false,
   processing: false,
 };
@@ -45,18 +46,92 @@ function isValidIsbnLength(isbn) {
 
 async function startScanner() {
   if (state.books.length >= MAX_BOOKS) return;
+  if (isIosDevice()) {
+    await startZxingScanner();
+    return;
+  }
+  await startHtml5Scanner();
+}
+
+function isIosDevice() {
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function showScanner() {
+  state.scanning = true;
+  elements.reader.hidden = false;
+  elements.placeholder.hidden = true;
+  elements.scanButton.hidden = true;
+  elements.cancelScanButton.hidden = false;
+}
+
+async function startZxingScanner() {
+  if (typeof ZXingBrowser === "undefined") {
+    setStatus("The scanner could not load. Check your connection and try again.", true);
+    return;
+  }
+
+  setStatus("Allow camera access when your browser asks.");
+  const video = document.createElement("video");
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+  elements.reader.append(video);
+
+  const reader = new ZXingBrowser.BrowserMultiFormatReader();
+  reader.possibleFormats = [
+    ZXingBrowser.BarcodeFormat.EAN_13,
+    ZXingBrowser.BarcodeFormat.EAN_8,
+    ZXingBrowser.BarcodeFormat.UPC_A,
+    ZXingBrowser.BarcodeFormat.UPC_E,
+  ];
+  state.scannerKind = "zxing";
+  state.scanner = { reader, controls: null };
+  showScanner();
+
+  try {
+    const controls = await reader.decodeFromConstraints(
+      {
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      },
+      video,
+      (result, error, callbackControls) => {
+        if (state.scannerKind === "zxing" && state.scanner) {
+          state.scanner.controls = callbackControls;
+        }
+        if (result) handleScanSuccess(result.getText());
+      }
+    );
+    if (state.scannerKind === "zxing" && state.scanner) {
+      state.scanner.controls = controls;
+    } else {
+      controls.stop();
+    }
+  } catch (error) {
+    console.error(error);
+    await resetScanner();
+    setStatus("Camera access failed. Check Safari camera permissions or type the ISBN below.", true);
+  }
+}
+
+async function startHtml5Scanner() {
   if (typeof Html5Qrcode === "undefined") {
     setStatus("The scanner could not load. Check your connection and try again.", true);
     return;
   }
 
   setStatus("Allow camera access when your browser asks.");
+  state.scannerKind = "html5";
   state.scanner = new Html5Qrcode("reader");
-  state.scanning = true;
-  elements.reader.hidden = false;
-  elements.placeholder.hidden = true;
-  elements.scanButton.hidden = true;
-  elements.cancelScanButton.hidden = false;
+  showScanner();
 
   try {
     await state.scanner.start(
@@ -81,7 +156,7 @@ async function startScanner() {
   } catch (error) {
     console.error(error);
     await resetScanner();
-    setStatus("Camera access failed. Check Safari camera permissions or type the ISBN below.", true);
+    setStatus("Camera access failed. Check browser camera permissions or type the ISBN below.", true);
   }
 }
 
@@ -104,7 +179,11 @@ async function handleScanSuccess(decodedText) {
 async function stopScanner() {
   if (state.scanner && state.scanning) {
     try {
-      await state.scanner.stop();
+      if (state.scannerKind === "zxing") {
+        state.scanner.controls?.stop();
+      } else {
+        await state.scanner.stop();
+      }
     } catch (error) {
       console.warn("Could not stop scanner cleanly", error);
     }
@@ -113,7 +192,7 @@ async function stopScanner() {
 }
 
 async function resetScanner() {
-  if (state.scanner) {
+  if (state.scanner && state.scannerKind === "html5") {
     try {
       state.scanner.clear();
     } catch (error) {
@@ -122,6 +201,7 @@ async function resetScanner() {
   }
 
   state.scanner = null;
+  state.scannerKind = null;
   state.scanning = false;
   replaceReader();
   elements.placeholder.hidden = state.books.length >= MAX_BOOKS;
