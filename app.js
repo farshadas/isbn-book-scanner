@@ -383,7 +383,7 @@ async function decodeVoiceAudio(blob) {
 
 function ensureVoiceWorker() {
   if (state.voiceWorker) return state.voiceWorker;
-  state.voiceWorker = new Worker("voice-worker.js?v=4", { type: "module" });
+  state.voiceWorker = new Worker("voice-worker.js?v=5", { type: "module" });
   state.voiceWorker.addEventListener("message", ({ data }) => {
     if (data.type === "progress") {
       if (state.transcribingVoice) setVoiceStatus(data.message);
@@ -391,7 +391,6 @@ function ensureVoiceWorker() {
       const title = data.text.trim().replace(/^[“"' ]+|[”"' .]+$/g, "");
       if (title) {
         elements.manualTitle.value = title;
-        elements.manualTitle.focus();
         finishVoiceTranscription("Title ready. Check it, then tap Add book.");
       } else {
         finishVoiceTranscription("No title was heard. Try again closer to the microphone.", true);

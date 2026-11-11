@@ -10,7 +10,7 @@ function getTranscriber() {
     self.postMessage({ type: "progress", message: "Loading the private speech model…" });
     transcriberPromise = pipeline(
       "automatic-speech-recognition",
-      "onnx-community/whisper-tiny.en",
+      "onnx-community/whisper-base.en",
       {
         dtype: "q8",
         progress_callback(progress) {
