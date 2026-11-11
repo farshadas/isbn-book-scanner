@@ -11,10 +11,10 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=13" />
+    <link rel="stylesheet" href="styles.css?v=14" />
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
     <script src="https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js" defer></script>
-    <script src="app.js?v=13" defer></script>
+    <script src="app.js?v=14" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -83,7 +83,7 @@
         <div class="section-heading">
           <div>
             <p class="step">Step 2</p>
-            <h2 id="scanner-heading">Scan a barcode</h2>
+            <h2 id="scanner-heading">Add books</h2>
           </div>
           <span id="counter" class="counter">0 / 5</span>
         </div>
@@ -101,30 +101,9 @@
           Scan first book
         </button>
         <button id="cancel-scan-button" class="button button-quiet" type="button" hidden>Cancel scan</button>
-        <p id="status" class="status" role="status" aria-live="polite"></p>
-      </section>
 
-      <section id="books-section" class="books-card" aria-labelledby="books-heading" hidden>
-        <div class="section-heading">
-          <div>
-            <p class="step">Step 3</p>
-            <h2 id="books-heading">Review and submit</h2>
-          </div>
-        </div>
-        <ol id="book-list" class="book-list"></ol>
-        <button id="submit-button" class="button button-primary" type="button">
-          Submit book list
-        </button>
-        <button id="reset-button" class="button button-secondary reset-button" type="button" hidden>
-          Start another student
-        </button>
-        <p id="submit-status" class="status submit-status" role="status" aria-live="polite"></p>
-        <p class="fine-print">One row will be saved in the selected grade tab.</p>
-      </section>
-
-      <details class="manual-entry">
-        <summary>Enter a book title manually</summary>
-        <form id="manual-form">
+        <p class="or-divider"><span>or type or say the title</span></p>
+        <form id="manual-form" class="manual-form">
           <div class="manual-row">
             <div id="title-field" class="title-field">
               <input
@@ -155,7 +134,27 @@
           </div>
           <p id="voice-status" class="voice-status" role="status" aria-live="polite"></p>
         </form>
-      </details>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section id="books-section" class="books-card" aria-labelledby="books-heading" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="step">Step 3</p>
+            <h2 id="books-heading">Review and submit</h2>
+          </div>
+        </div>
+        <ol id="book-list" class="book-list"></ol>
+        <button id="submit-button" class="button button-primary" type="button">
+          Submit book list
+        </button>
+        <button id="reset-button" class="button button-secondary reset-button" type="button" hidden>
+          Start another student
+        </button>
+        <p id="submit-status" class="status submit-status" role="status" aria-live="polite"></p>
+        <p class="fine-print">One row will be saved in the selected grade tab.</p>
+      </section>
+
     </main>
   </body>
 </html>
