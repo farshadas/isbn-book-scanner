@@ -376,6 +376,43 @@ h2 {
   border-color: #557064;
 }
 
+.voice-button {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid #557064;
+  border-radius: 0.8rem;
+  color: #294438;
+  font: inherit;
+  font-weight: 700;
+  background: #edf4ef;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.voice-button.recording {
+  color: #fff;
+  background: #9b3838;
+  border-color: #9b3838;
+}
+
+.voice-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.voice-status {
+  min-height: 1.3em;
+  margin: 0.55rem 0 0;
+  color: #53625a;
+  font-size: 0.8rem;
+}
+
+.voice-status.error {
+  color: #9b3838;
+}
+
 @media (min-width: 36rem) {
   .shell {
     padding-right: 1.5rem;

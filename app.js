@@ -9,6 +9,13 @@ const state = {
   scanning: false,
   processing: false,
   submitted: false,
+  voiceWorker: null,
+  voiceStream: null,
+  voiceRecorder: null,
+  voiceChunks: [],
+  voicePressed: false,
+  recordingVoice: false,
+  transcribingVoice: false,
 };
 
 const elements = {
@@ -28,7 +35,9 @@ const elements = {
   resetButton: document.querySelector("#reset-button"),
   submitStatus: document.querySelector("#submit-status"),
   manualForm: document.querySelector("#manual-form"),
-  manualIsbn: document.querySelector("#manual-isbn"),
+  manualTitle: document.querySelector("#manual-title"),
+  voiceButton: document.querySelector("#voice-button"),
+  voiceStatus: document.querySelector("#voice-status"),
 };
 
 elements.scanButton.addEventListener("click", startScanner);
@@ -36,6 +45,11 @@ elements.cancelScanButton.addEventListener("click", stopScanner);
 elements.submitButton.addEventListener("click", submitBookList);
 elements.resetButton.addEventListener("click", resetForNextStudent);
 elements.manualForm.addEventListener("submit", handleManualEntry);
+elements.voiceButton.addEventListener("pointerdown", startVoiceCapture);
+window.addEventListener("pointerup", stopVoiceCapture);
+window.addEventListener("pointercancel", stopVoiceCapture);
+elements.voiceButton.addEventListener("keydown", handleVoiceKeyDown);
+elements.voiceButton.addEventListener("keyup", handleVoiceKeyUp);
 
 function normalizeIsbn(value) {
   return String(value).replace(/[^0-9X]/gi, "").toUpperCase();
@@ -221,14 +235,174 @@ function replaceReader() {
 
 async function handleManualEntry(event) {
   event.preventDefault();
-  const isbn = normalizeIsbn(elements.manualIsbn.value);
-  if (!isValidIsbnLength(isbn)) {
-    setStatus("Enter a 10 or 13 digit ISBN.", true);
+  if (state.books.length >= MAX_BOOKS) {
+    setStatus("Five books are already in the list.", true);
+    return;
+  }
+  if (!elements.manualForm.reportValidity()) {
     return;
   }
 
-  elements.manualIsbn.value = "";
-  await addBook(isbn);
+  const title = elements.manualTitle.value.trim();
+  state.books.push({ isbn: "", title, authors: "" });
+  elements.manualForm.reset();
+  renderBooks();
+  setStatus(`Added “${title}”.`);
+}
+
+function handleVoiceKeyDown(event) {
+  if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+    event.preventDefault();
+    startVoiceCapture(event);
+  }
+}
+
+function handleVoiceKeyUp(event) {
+  if (event.key === " " || event.key === "Enter") {
+    event.preventDefault();
+    stopVoiceCapture();
+  }
+}
+
+async function startVoiceCapture(event) {
+  event.preventDefault();
+  if (state.recordingVoice || state.transcribingVoice) return;
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+    setVoiceStatus("Voice entry is not supported by this browser.", true);
+    return;
+  }
+
+  state.voicePressed = true;
+  ensureVoiceWorker();
+  setVoiceStatus("Allow microphone access, then hold the button again.");
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: false,
+    });
+    if (!state.voicePressed) {
+      stream.getTracks().forEach((track) => track.stop());
+      setVoiceStatus("Hold the button while saying the book title.");
+      return;
+    }
+
+    const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((type) =>
+      MediaRecorder.isTypeSupported(type)
+    );
+    state.voiceStream = stream;
+    state.voiceChunks = [];
+    state.voiceRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    state.voiceRecorder.addEventListener("dataavailable", (voiceEvent) => {
+      if (voiceEvent.data.size) state.voiceChunks.push(voiceEvent.data);
+    });
+    state.voiceRecorder.addEventListener("stop", transcribeVoiceCapture, { once: true });
+    state.voiceRecorder.start();
+    state.recordingVoice = true;
+    elements.voiceButton.classList.add("recording");
+    elements.voiceButton.textContent = "Listening… release when done";
+    setVoiceStatus("Say only the book title.");
+  } catch (error) {
+    console.error(error);
+    state.voicePressed = false;
+    setVoiceStatus("Microphone access was not available.", true);
+  }
+}
+
+function stopVoiceCapture() {
+  state.voicePressed = false;
+  if (!state.recordingVoice || state.voiceRecorder?.state !== "recording") return;
+  state.recordingVoice = false;
+  state.voiceRecorder.stop();
+  state.voiceStream?.getTracks().forEach((track) => track.stop());
+  state.voiceStream = null;
+  elements.voiceButton.classList.remove("recording");
+  elements.voiceButton.textContent = "Hold to say the book title";
+  setVoiceStatus("Processing on this device…");
+}
+
+async function transcribeVoiceCapture() {
+  if (!state.voiceChunks.length) {
+    setVoiceStatus("No audio was recorded. Hold the button and try again.", true);
+    return;
+  }
+
+  state.transcribingVoice = true;
+  elements.voiceButton.disabled = true;
+  try {
+    const blob = new Blob(state.voiceChunks, { type: state.voiceRecorder.mimeType });
+    const audio = await decodeVoiceAudio(blob);
+    ensureVoiceWorker().postMessage({ type: "transcribe", audio }, [audio.buffer]);
+  } catch (error) {
+    console.error(error);
+    finishVoiceTranscription("The recording could not be processed.", true);
+  }
+}
+
+async function decodeVoiceAudio(blob) {
+  const context = new AudioContext();
+  const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+  const mono = new Float32Array(decoded.length);
+  for (let channel = 0; channel < decoded.numberOfChannels; channel += 1) {
+    const data = decoded.getChannelData(channel);
+    for (let index = 0; index < data.length; index += 1) {
+      mono[index] += data[index] / decoded.numberOfChannels;
+    }
+  }
+  await context.close();
+  if (decoded.sampleRate === 16000) return mono;
+
+  const frames = Math.ceil(decoded.duration * 16000);
+  const offline = new OfflineAudioContext(1, frames, 16000);
+  const buffer = offline.createBuffer(1, mono.length, decoded.sampleRate);
+  buffer.copyToChannel(mono, 0);
+  const source = offline.createBufferSource();
+  source.buffer = buffer;
+  source.connect(offline.destination);
+  source.start();
+  const rendered = await offline.startRendering();
+  return new Float32Array(rendered.getChannelData(0));
+}
+
+function ensureVoiceWorker() {
+  if (state.voiceWorker) return state.voiceWorker;
+  state.voiceWorker = new Worker("voice-worker.js?v=2", { type: "module" });
+  state.voiceWorker.addEventListener("message", ({ data }) => {
+    if (data.type === "progress") {
+      setVoiceStatus(data.message);
+    } else if (data.type === "result") {
+      const title = data.text.trim().replace(/^[“"' ]+|[”"' .]+$/g, "");
+      if (title) {
+        elements.manualTitle.value = title;
+        elements.manualTitle.focus();
+        finishVoiceTranscription("Title ready. Check it, then tap Add book.");
+      } else {
+        finishVoiceTranscription("No title was heard. Try again closer to the microphone.", true);
+      }
+    } else if (data.type === "error") {
+      finishVoiceTranscription("Voice entry could not load on this device.", true);
+    }
+  });
+  state.voiceWorker.addEventListener("error", (error) => {
+    console.error(error);
+    finishVoiceTranscription("Voice entry could not load on this device.", true);
+  });
+  return state.voiceWorker;
+}
+
+function finishVoiceTranscription(message, isError = false) {
+  state.transcribingVoice = false;
+  elements.voiceButton.disabled = false;
+  setVoiceStatus(message, isError);
+}
+
+function setVoiceStatus(message, isError = false) {
+  elements.voiceStatus.textContent = message;
+  elements.voiceStatus.classList.toggle("error", isError);
 }
 
 async function addBook(isbn) {
@@ -332,10 +506,13 @@ function renderBooks() {
       state.books[index].authors = event.target.value;
     });
 
-    const isbn = document.createElement("span");
-    isbn.className = "book-isbn";
-    isbn.textContent = `ISBN ${book.isbn}`;
-    details.append(title, authors, isbn);
+    details.append(title, authors);
+    if (book.isbn) {
+      const isbn = document.createElement("span");
+      isbn.className = "book-isbn";
+      isbn.textContent = `ISBN ${book.isbn}`;
+      details.append(isbn);
+    }
 
     const remove = document.createElement("button");
     remove.className = "remove-button";
@@ -427,6 +604,7 @@ async function resetForNextStudent() {
   elements.studentForm.reset();
   elements.grade.value = "";
   elements.manualForm.reset();
+  setVoiceStatus("Voice is processed on this device. The first use downloads the speech model.");
   setStatus("");
   elements.submitButton.hidden = false;
   elements.submitButton.textContent = "Submit book list";

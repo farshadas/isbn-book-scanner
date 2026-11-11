@@ -11,17 +11,19 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=7" />
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
     <script src="https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js" defer></script>
-    <script src="app.js?v=6" defer></script>
+    <script src="app.js?v=7" defer></script>
   </head>
   <body>
     <main class="shell">
       <header>
         <p class="eyebrow">Book intake</p>
         <h1>Scan up to five books.</h1>
-        <p class="intro">Add the student, scan the ISBN barcodes, then save the list to the grade sheet.</p>
+        <p class="intro">
+          Add the student, scan the ISBN barcodes or enter a title, then save the list to the grade sheet.
+        </p>
       </header>
 
       <form id="student-form" class="student-card">
@@ -34,11 +36,30 @@
         <div class="student-fields">
           <label>
             First name
-            <input id="first-name" name="firstName" type="text" autocomplete="given-name" required />
+            <input
+              id="first-name"
+              name="firstName"
+              type="text"
+              autocomplete="given-name"
+              minlength="2"
+              pattern=".{2,}"
+              title="Enter at least 2 characters."
+              required
+            />
           </label>
           <label>
-            Last name
-            <input id="last-name" name="lastName" type="text" autocomplete="family-name" required />
+            First 2 letters of last name
+            <input
+              id="last-name"
+              name="lastName"
+              type="text"
+              autocomplete="off"
+              minlength="2"
+              maxlength="2"
+              pattern=".{2}"
+              title="Enter exactly the first 2 characters of the last name."
+              required
+            />
           </label>
           <label>
             Grade
@@ -104,18 +125,27 @@
       <details class="manual-entry">
         <summary>Barcode not scanning?</summary>
         <form id="manual-form">
-          <label for="manual-isbn">Type the 10 or 13 digit ISBN</label>
+          <label for="manual-title">Type the book title</label>
           <div class="manual-row">
             <input
-              id="manual-isbn"
-              name="isbn"
+              id="manual-title"
+              name="title"
               type="text"
-              inputmode="numeric"
               autocomplete="off"
-              placeholder="978…"
+              minlength="2"
+              pattern=".{2,}"
+              title="Enter at least 2 characters."
+              placeholder="Book title"
+              required
             />
-            <button class="button button-secondary" type="submit">Find book</button>
+            <button class="button button-secondary" type="submit">Add book</button>
           </div>
+          <button id="voice-button" class="voice-button" type="button">
+            Hold to say the book title
+          </button>
+          <p id="voice-status" class="voice-status" role="status" aria-live="polite">
+            Voice is processed on this device. The first use downloads the speech model.
+          </p>
         </form>
       </details>
     </main>

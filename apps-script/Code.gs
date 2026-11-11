@@ -42,7 +42,11 @@ function doPost(event) {
       values[`book ${number}`] = cleanCell_(payload[`book${number}`]);
     });
 
-    if (!values["first name"] || !values["last name"] || !GRADE_TABS[grade]) {
+    if (
+      values["first name"].length < 2 ||
+      values["last name"].length !== 2 ||
+      !GRADE_TABS[grade]
+    ) {
       return jsonResponse_({ ok: false, error: "Missing or invalid student information." });
     }
     if (![1, 2, 3, 4, 5].some((number) => values[`book ${number}`])) {
