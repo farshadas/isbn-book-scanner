@@ -36,6 +36,7 @@ const elements = {
   submitStatus: document.querySelector("#submit-status"),
   manualForm: document.querySelector("#manual-form"),
   manualTitle: document.querySelector("#manual-title"),
+  titleField: document.querySelector("#title-field"),
   voiceButton: document.querySelector("#voice-button"),
   voiceLabel: document.querySelector("#voice-label"),
   voiceStatus: document.querySelector("#voice-status"),
@@ -325,6 +326,7 @@ function stopVoiceCapture() {
   elements.voiceButton.classList.remove("recording");
   elements.voiceLabel.textContent = "Hold to say the book title";
   setVoiceStatus("Processing on this device…");
+  showTypingDots(true);
 }
 
 async function transcribeVoiceCapture() {
@@ -333,6 +335,7 @@ async function transcribeVoiceCapture() {
   state.voiceChunks = [];
   state.voiceRecorder = null;
   if (!chunks.length) {
+    showTypingDots(false);
     setVoiceStatus("No audio was recorded. Hold the button and try again.", true);
     return;
   }
@@ -390,6 +393,7 @@ function ensureVoiceWorker() {
     } else if (data.type === "result") {
       const title = data.text.trim().replace(/^[“"' ]+|[”"' .]+$/g, "");
       if (title) {
+        showTypingDots(false);
         elements.manualTitle.value = title;
         finishVoiceTranscription("Title ready. Check it, then tap Add book.");
       } else {
@@ -415,7 +419,18 @@ function preloadVoiceModel() {
   ensureVoiceWorker().postMessage({ type: "preload" });
 }
 
+function showTypingDots(visible) {
+  if (visible) {
+    state.titleBeforeVoice = elements.manualTitle.value;
+    elements.manualTitle.value = "";
+  } else if (elements.titleField.classList.contains("transcribing") && !elements.manualTitle.value) {
+    elements.manualTitle.value = state.titleBeforeVoice || "";
+  }
+  elements.titleField.classList.toggle("transcribing", visible);
+}
+
 function finishVoiceTranscription(message, isError = false) {
+  showTypingDots(false);
   state.transcribingVoice = false;
   elements.voiceButton.disabled = false;
   setVoiceStatus(message, isError);
