@@ -11,10 +11,10 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=12" />
+    <link rel="stylesheet" href="styles.css?v=13" />
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
     <script src="https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js" defer></script>
-    <script src="app.js?v=12" defer></script>
+    <script src="app.js?v=13" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -136,20 +136,23 @@
                 minlength="2"
                 pattern=".{2,}"
                 title="Enter at least 2 characters."
-                placeholder="Book title"
+                placeholder="Type or say the book title"
                 required
               />
               <span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
             </div>
+            <button id="clear-title" class="clear-title" type="button" aria-label="Clear title">×</button>
+          </div>
+          <div class="voice-row">
+            <button id="voice-button" class="voice-button" type="button">
+              <svg class="mic-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" />
+                <path d="M19 11a7 7 0 0 1-14 0M12 18v3M8 21h8" />
+              </svg>
+              <span id="voice-label">Hold to say the book title</span>
+            </button>
             <button class="button button-secondary" type="submit">Add book</button>
           </div>
-          <button id="voice-button" class="voice-button" type="button">
-            <svg class="mic-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" />
-              <path d="M19 11a7 7 0 0 1-14 0M12 18v3M8 21h8" />
-            </svg>
-            <span id="voice-label">Hold to say the book title</span>
-          </button>
           <p id="voice-status" class="voice-status" role="status" aria-live="polite"></p>
         </form>
       </details>

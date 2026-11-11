@@ -37,6 +37,7 @@ const elements = {
   manualForm: document.querySelector("#manual-form"),
   manualTitle: document.querySelector("#manual-title"),
   titleField: document.querySelector("#title-field"),
+  clearTitle: document.querySelector("#clear-title"),
   voiceButton: document.querySelector("#voice-button"),
   voiceLabel: document.querySelector("#voice-label"),
   voiceStatus: document.querySelector("#voice-status"),
@@ -47,6 +48,10 @@ elements.cancelScanButton.addEventListener("click", stopScanner);
 elements.submitButton.addEventListener("click", submitBookList);
 elements.resetButton.addEventListener("click", resetForNextStudent);
 elements.manualForm.addEventListener("submit", handleManualEntry);
+elements.clearTitle.addEventListener("click", () => {
+  elements.manualTitle.value = "";
+  elements.manualTitle.focus();
+});
 elements.voiceButton.addEventListener("pointerdown", startVoiceCapture);
 window.addEventListener("pointerup", stopVoiceCapture);
 window.addEventListener("pointercancel", stopVoiceCapture);
@@ -395,7 +400,7 @@ function ensureVoiceWorker() {
       if (title) {
         showTypingDots(false);
         elements.manualTitle.value = title;
-        finishVoiceTranscription("Title ready. Check it, then tap Add book.");
+        finishVoiceTranscription("");
       } else {
         finishVoiceTranscription("No title was heard. Try again closer to the microphone.", true);
       }
