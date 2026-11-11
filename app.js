@@ -37,6 +37,7 @@ const elements = {
   manualForm: document.querySelector("#manual-form"),
   manualTitle: document.querySelector("#manual-title"),
   voiceButton: document.querySelector("#voice-button"),
+  voiceLabel: document.querySelector("#voice-label"),
   voiceStatus: document.querySelector("#voice-status"),
 };
 
@@ -304,7 +305,7 @@ async function startVoiceCapture(event) {
     state.voiceRecorder.start();
     state.recordingVoice = true;
     elements.voiceButton.classList.add("recording");
-    elements.voiceButton.textContent = "Listening… release when done";
+    elements.voiceLabel.textContent = "Listening… release when done";
     setVoiceStatus("Say only the book title.");
   } catch (error) {
     console.error(error);
@@ -321,7 +322,7 @@ function stopVoiceCapture() {
   state.voiceStream?.getTracks().forEach((track) => track.stop());
   state.voiceStream = null;
   elements.voiceButton.classList.remove("recording");
-  elements.voiceButton.textContent = "Hold to say the book title";
+  elements.voiceLabel.textContent = "Hold to say the book title";
   setVoiceStatus("Processing on this device…");
 }
 

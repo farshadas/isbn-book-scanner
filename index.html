@@ -11,10 +11,10 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link rel="stylesheet" href="styles.css?v=8" />
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
     <script src="https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js" defer></script>
-    <script src="app.js?v=7" defer></script>
+    <script src="app.js?v=8" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -22,7 +22,7 @@
         <p class="eyebrow">Book intake</p>
         <h1>Scan up to five books.</h1>
         <p class="intro">
-          Add the student, scan the ISBN barcodes or enter a title, then save the list to the grade sheet.
+          Scan the ISBN barcode on the back of each book or enter its title. Add up to five books, then submit your list.
         </p>
       </header>
 
@@ -123,7 +123,7 @@
       </section>
 
       <details class="manual-entry">
-        <summary>Barcode not scanning?</summary>
+        <summary>Enter a book title manually</summary>
         <form id="manual-form">
           <label for="manual-title">Type the book title</label>
           <div class="manual-row">
@@ -141,7 +141,11 @@
             <button class="button button-secondary" type="submit">Add book</button>
           </div>
           <button id="voice-button" class="voice-button" type="button">
-            Hold to say the book title
+            <svg class="mic-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z" />
+              <path d="M19 11a7 7 0 0 1-14 0M12 18v3M8 21h8" />
+            </svg>
+            <span id="voice-label">Hold to say the book title</span>
           </button>
           <p id="voice-status" class="voice-status" role="status" aria-live="polite">
             Voice is processed on this device. The first use downloads the speech model.
