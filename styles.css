@@ -350,13 +350,6 @@ h2 {
   margin-top: 1rem;
 }
 
-.manual-entry label {
-  display: block;
-  margin-bottom: 0.45rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
 .manual-row {
   display: flex;
   gap: 0.5rem;
@@ -425,6 +418,10 @@ h2 {
   margin: 0.55rem 0 0;
   color: #53625a;
   font-size: 0.8rem;
+}
+
+.voice-status:empty {
+  display: none;
 }
 
 .voice-status.error {

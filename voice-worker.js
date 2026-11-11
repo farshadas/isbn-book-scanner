@@ -28,6 +28,13 @@ function getTranscriber() {
 }
 
 self.addEventListener("message", async ({ data }) => {
+  if (data.type === "preload") {
+    getTranscriber().catch((error) => {
+      console.error(error);
+      transcriberPromise = null;
+    });
+    return;
+  }
   if (data.type !== "transcribe") return;
   try {
     const transcriber = await getTranscriber();

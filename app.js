@@ -51,6 +51,7 @@ window.addEventListener("pointerup", stopVoiceCapture);
 window.addEventListener("pointercancel", stopVoiceCapture);
 elements.voiceButton.addEventListener("keydown", handleVoiceKeyDown);
 elements.voiceButton.addEventListener("keyup", handleVoiceKeyUp);
+window.addEventListener("load", () => setTimeout(preloadVoiceModel, 0), { once: true });
 
 function normalizeIsbn(value) {
   return String(value).replace(/[^0-9X]/gi, "").toUpperCase();
@@ -382,10 +383,10 @@ async function decodeVoiceAudio(blob) {
 
 function ensureVoiceWorker() {
   if (state.voiceWorker) return state.voiceWorker;
-  state.voiceWorker = new Worker("voice-worker.js?v=3", { type: "module" });
+  state.voiceWorker = new Worker("voice-worker.js?v=4", { type: "module" });
   state.voiceWorker.addEventListener("message", ({ data }) => {
     if (data.type === "progress") {
-      setVoiceStatus(data.message);
+      if (state.transcribingVoice) setVoiceStatus(data.message);
     } else if (data.type === "result") {
       const title = data.text.trim().replace(/^[“"' ]+|[”"' .]+$/g, "");
       if (title) {
@@ -401,9 +402,18 @@ function ensureVoiceWorker() {
   });
   state.voiceWorker.addEventListener("error", (error) => {
     console.error(error);
-    finishVoiceTranscription("Voice entry could not load on this device.", true);
+    state.voiceWorker.terminate();
+    state.voiceWorker = null;
+    if (state.transcribingVoice) {
+      finishVoiceTranscription("Voice entry could not load on this device.", true);
+    }
   });
   return state.voiceWorker;
+}
+
+function preloadVoiceModel() {
+  if (!window.Worker || !navigator.mediaDevices?.getUserMedia) return;
+  ensureVoiceWorker().postMessage({ type: "preload" });
 }
 
 function finishVoiceTranscription(message, isError = false) {
