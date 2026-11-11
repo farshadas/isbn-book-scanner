@@ -41,5 +41,8 @@ self.addEventListener("message", async ({ data }) => {
     console.error(error);
     transcriberPromise = null;
     self.postMessage({ type: "error" });
+  } finally {
+    data.audio?.fill(0);
+    data.audio = null;
   }
 });

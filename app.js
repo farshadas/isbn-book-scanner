@@ -327,7 +327,11 @@ function stopVoiceCapture() {
 }
 
 async function transcribeVoiceCapture() {
-  if (!state.voiceChunks.length) {
+  const chunks = state.voiceChunks;
+  const mimeType = state.voiceRecorder?.mimeType;
+  state.voiceChunks = [];
+  state.voiceRecorder = null;
+  if (!chunks.length) {
     setVoiceStatus("No audio was recorded. Hold the button and try again.", true);
     return;
   }
@@ -335,8 +339,10 @@ async function transcribeVoiceCapture() {
   state.transcribingVoice = true;
   elements.voiceButton.disabled = true;
   try {
-    const blob = new Blob(state.voiceChunks, { type: state.voiceRecorder.mimeType });
+    let blob = new Blob(chunks, { type: mimeType });
+    chunks.length = 0;
     const audio = await decodeVoiceAudio(blob);
+    blob = null;
     ensureVoiceWorker().postMessage({ type: "transcribe", audio }, [audio.buffer]);
   } catch (error) {
     console.error(error);
@@ -353,6 +359,7 @@ async function decodeVoiceAudio(blob) {
     for (let index = 0; index < data.length; index += 1) {
       mono[index] += data[index] / decoded.numberOfChannels;
     }
+    data.fill(0);
   }
   await context.close();
   if (decoded.sampleRate === 16000) return mono;
@@ -361,17 +368,21 @@ async function decodeVoiceAudio(blob) {
   const offline = new OfflineAudioContext(1, frames, 16000);
   const buffer = offline.createBuffer(1, mono.length, decoded.sampleRate);
   buffer.copyToChannel(mono, 0);
+  mono.fill(0);
   const source = offline.createBufferSource();
   source.buffer = buffer;
   source.connect(offline.destination);
   source.start();
   const rendered = await offline.startRendering();
-  return new Float32Array(rendered.getChannelData(0));
+  buffer.getChannelData(0).fill(0);
+  const resampled = new Float32Array(rendered.getChannelData(0));
+  rendered.getChannelData(0).fill(0);
+  return resampled;
 }
 
 function ensureVoiceWorker() {
   if (state.voiceWorker) return state.voiceWorker;
-  state.voiceWorker = new Worker("voice-worker.js?v=2", { type: "module" });
+  state.voiceWorker = new Worker("voice-worker.js?v=3", { type: "module" });
   state.voiceWorker.addEventListener("message", ({ data }) => {
     if (data.type === "progress") {
       setVoiceStatus(data.message);

@@ -10,7 +10,8 @@ A mobile-first barcode scanner that:
 The site is static. Submissions are sent to a Google Apps Script web app bound to the destination Sheet.
 
 Book-title dictation runs in a browser worker with a cached Whisper model. Recorded audio is processed
-on the device and is not sent to the Sheet endpoint or a transcription service.
+on the device and is not sent to the Sheet endpoint or a transcription service. Only the model files are
+cached; the recording is held in memory, zeroed after transcription, and never written to browser storage.
 
 The Apps Script source is in `apps-script/Code.gs`. Run `setupGradeSheets` once, then deploy it as a web app that executes as the Sheet owner and is accessible to anyone.
 
