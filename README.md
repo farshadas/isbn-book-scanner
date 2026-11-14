@@ -13,7 +13,7 @@ Book-title dictation runs in a browser worker with a cached Whisper model. Recor
 on the device and is not sent to the Sheet endpoint or a transcription service. Only the model files are
 cached; the recording is held in memory, zeroed after transcription, and never written to browser storage.
 
-The Apps Script source is in `apps-script/Code.gs`. Run `setupGradeSpreadsheets` once to create the grade spreadsheets in the Drive folder, then deploy it as a web app that executes as the Sheet owner and is accessible to anyone.
+The Apps Script source is in `apps-script/Code.gs`. It is a standalone project; `GRADE_SPREADSHEET_IDS` lists each grade's spreadsheet. Deploy it as a web app that executes as the Sheet owner and is accessible to anyone.
 
 ## Run locally
 

@@ -1,5 +1,5 @@
 const SUBMISSION_URL =
-  "https://script.google.com/macros/s/AKfycbxw-jbLFaeOmJippEuPtszxnqrtC1t4NhQ-XxrJoy_WBvvB6NE-dINl__TlArDWllyA/exec";
+  "https://script.google.com/macros/s/AKfycbxv0Oc-AKY67Iuy6uCBLQ3FZCOD7MoZU779gobi1Tuhmd0yKxb72oB31SBUmZE_G4qR/exec";
 const MAX_BOOKS = 5;
 
 const state = {

@@ -22,42 +22,17 @@ const HEADERS = [
   "Timestamp",
 ];
 
-const GRADE_FOLDER_ID = "1OTGO_tR7LZP1jQ2HLT1hUMb6QUl5O6Mt";
-
-// Creates one spreadsheet per grade in GRADE_FOLDER_ID, copying rows from the matching tab of the
-// old combined spreadsheet (SPREADSHEET_ID) when it exists. Safe to rerun; existing grades are skipped.
-function setupGradeSpreadsheets() {
-  const properties = PropertiesService.getScriptProperties();
-  const ids = getGradeSpreadsheetIds_();
-  const sourceId = properties.getProperty("SPREADSHEET_ID");
-  const source = sourceId ? SpreadsheetApp.openById(sourceId) : null;
-  const folder = DriveApp.getFolderById(GRADE_FOLDER_ID);
-
-  Object.entries(GRADE_TABS).forEach(([grade, tabName]) => {
-    if (ids[grade]) return;
-    const target = SpreadsheetApp.create(`Book List - ${tabName}`);
-    DriveApp.getFileById(target.getId()).moveTo(folder);
-    const sourceSheet = source?.getSheetByName(tabName);
-    if (sourceSheet) {
-      const blank = target.getSheets()[0];
-      const copy = sourceSheet.copyTo(target);
-      target.deleteSheet(blank);
-      copy.setName(tabName);
-      copy.setFrozenRows(1);
-    } else {
-      prepareSheet_(target.getSheets()[0].setName(tabName));
-    }
-    ids[grade] = target.getId();
-    properties.setProperty("GRADE_SPREADSHEET_IDS", JSON.stringify(ids));
-  });
-  console.log(JSON.stringify(ids));
-}
-
-function getGradeSpreadsheetIds_() {
-  return JSON.parse(
-    PropertiesService.getScriptProperties().getProperty("GRADE_SPREADSHEET_IDS") || "{}"
-  );
-}
+const GRADE_SPREADSHEET_IDS = Object.freeze({
+  K: "1BxiNLWOLx8dNzlSLWfqVIdpCwoSqrC-Jpg39NsyXXIk",
+  1: "1Bj2kNajhuezTNEBWau_l617LOiHcwNy5By85qrogET0",
+  2: "1H0BR4db0jZCn_kxbCr1IxIYNmu22tCmJ9TSrNXV8eRo",
+  3: "1yvMcxSQ4mtwvwXupHKfC97CANBsOP_YwEMZYz4p98mI",
+  4: "1d7hefxzYBNyaZkugbRDhOonfYnxZnCsq1uW4QrXUIp0",
+  5: "1hdXwiNdQvx31PxIPNfsLuking3WEn8df4UwpH4W_nP0",
+  6: "1pibZ13mUyojwRiPUGdVpESjol422qosYnVOlGIWTXJQ",
+  7: "1Eh48xSPhyup6WT1zijD94oCjKXyLn-D-kYUnQKc1e-8",
+  8: "116L2XfKzHF5XQBLyb26BmJhz9oIwbOjpX-6Nf7jO2Eg",
+});
 
 function doPost(event) {
   try {
@@ -84,13 +59,10 @@ function doPost(event) {
       return jsonResponse_({ ok: false, error: "At least one book is required." });
     }
 
-    const spreadsheetId = getGradeSpreadsheetIds_()[grade];
-    if (!spreadsheetId) throw new Error("Run setupGradeSpreadsheets before accepting submissions.");
-
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
-      const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+      const spreadsheet = SpreadsheetApp.openById(GRADE_SPREADSHEET_IDS[grade]);
       insertSorted_(prepareSheet_(spreadsheet.getSheets()[0]), values);
     } finally {
       lock.releaseLock();
