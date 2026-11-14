@@ -645,7 +645,7 @@ async function resetForNextStudent() {
   elements.studentForm.reset();
   elements.grade.value = "";
   elements.manualForm.reset();
-  setVoiceStatus("Voice is processed on this device. The first use downloads the speech model.");
+  setVoiceStatus("");
   setStatus("");
   elements.submitButton.hidden = false;
   elements.submitButton.textContent = "Submit book list";

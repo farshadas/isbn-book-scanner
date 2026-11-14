@@ -11,10 +11,10 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=14" />
+    <link rel="stylesheet" href="styles.css?v=15" />
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
     <script src="https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js" defer></script>
-    <script src="app.js?v=14" defer></script>
+    <script src="app.js?v=15" defer></script>
   </head>
   <body>
     <main class="shell">
@@ -35,8 +35,8 @@
         </div>
         <div class="student-fields">
           <label>
-            First name
-              <input
+            First Name
+            <input
               id="first-name"
               name="firstName"
               type="text"
@@ -48,32 +48,32 @@
             />
           </label>
           <label>
-            First 2 letters of last name
-              <input
+            Last Name Initial
+            <input
               id="last-name"
               name="lastName"
               type="text"
               autocomplete="off"
-              minlength="2"
-              maxlength="2"
-              pattern=".{2}"
-              title="Enter exactly the first 2 characters of the last name."
+              autocapitalize="characters"
+              maxlength="1"
+              pattern="\p{L}"
+              title="Enter the first letter of the last name."
               required
             />
           </label>
           <label>
             Grade
             <select id="grade" name="grade" required>
-              <option value="" selected disabled>Select grade</option>
-              <option value="K">Kindergarten</option>
-              <option value="1">Grade 1</option>
-              <option value="2">Grade 2</option>
-              <option value="3">Grade 3</option>
-              <option value="4">Grade 4</option>
-              <option value="5">Grade 5</option>
-              <option value="6">Grade 6</option>
-              <option value="7">Grade 7</option>
-              <option value="8">Grade 8</option>
+              <option value="" selected disabled>Select</option>
+              <option value="K">K</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
             </select>
           </label>
         </div>
@@ -152,7 +152,7 @@
           Start another student
         </button>
         <p id="submit-status" class="status submit-status" role="status" aria-live="polite"></p>
-        <p class="fine-print">One row will be saved in the selected grade tab.</p>
+        <p class="fine-print">One row will be saved in the selected grade’s sheet.</p>
       </section>
 
     </main>

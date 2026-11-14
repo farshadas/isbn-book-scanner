@@ -22,10 +22,41 @@ const HEADERS = [
   "Timestamp",
 ];
 
-function setupGradeSheets() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  PropertiesService.getScriptProperties().setProperty("SPREADSHEET_ID", spreadsheet.getId());
-  Object.values(GRADE_TABS).forEach((tabName) => getOrCreateSheet_(spreadsheet, tabName));
+const GRADE_FOLDER_ID = "1OTGO_tR7LZP1jQ2HLT1hUMb6QUl5O6Mt";
+
+// Creates one spreadsheet per grade in GRADE_FOLDER_ID, copying rows from the matching tab of the
+// old combined spreadsheet (SPREADSHEET_ID) when it exists. Safe to rerun; existing grades are skipped.
+function setupGradeSpreadsheets() {
+  const properties = PropertiesService.getScriptProperties();
+  const ids = getGradeSpreadsheetIds_();
+  const sourceId = properties.getProperty("SPREADSHEET_ID");
+  const source = sourceId ? SpreadsheetApp.openById(sourceId) : null;
+  const folder = DriveApp.getFolderById(GRADE_FOLDER_ID);
+
+  Object.entries(GRADE_TABS).forEach(([grade, tabName]) => {
+    if (ids[grade]) return;
+    const target = SpreadsheetApp.create(`Book List - ${tabName}`);
+    DriveApp.getFileById(target.getId()).moveTo(folder);
+    const sourceSheet = source?.getSheetByName(tabName);
+    if (sourceSheet) {
+      const blank = target.getSheets()[0];
+      const copy = sourceSheet.copyTo(target);
+      target.deleteSheet(blank);
+      copy.setName(tabName);
+      copy.setFrozenRows(1);
+    } else {
+      prepareSheet_(target.getSheets()[0].setName(tabName));
+    }
+    ids[grade] = target.getId();
+    properties.setProperty("GRADE_SPREADSHEET_IDS", JSON.stringify(ids));
+  });
+  console.log(JSON.stringify(ids));
+}
+
+function getGradeSpreadsheetIds_() {
+  return JSON.parse(
+    PropertiesService.getScriptProperties().getProperty("GRADE_SPREADSHEET_IDS") || "{}"
+  );
 }
 
 function doPost(event) {
@@ -44,7 +75,7 @@ function doPost(event) {
 
     if (
       values["first name"].length < 2 ||
-      values["last name"].length !== 2 ||
+      values["last name"].length !== 1 ||
       !GRADE_TABS[grade]
     ) {
       return jsonResponse_({ ok: false, error: "Missing or invalid student information." });
@@ -53,14 +84,14 @@ function doPost(event) {
       return jsonResponse_({ ok: false, error: "At least one book is required." });
     }
 
-    const spreadsheetId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
-    if (!spreadsheetId) throw new Error("Run setupGradeSheets before accepting submissions.");
+    const spreadsheetId = getGradeSpreadsheetIds_()[grade];
+    if (!spreadsheetId) throw new Error("Run setupGradeSpreadsheets before accepting submissions.");
 
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
       const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
-      insertSorted_(getOrCreateSheet_(spreadsheet, GRADE_TABS[grade]), values);
+      insertSorted_(prepareSheet_(spreadsheet.getSheets()[0]), values);
     } finally {
       lock.releaseLock();
     }
@@ -100,15 +131,15 @@ function headerKey_(header) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ")
-    .replace(/^student(?:'s)? /, "");
+    .replace(/^student(?:'s)? /, "")
+    .replace(/ initial$/, "");
 }
 
 function sortKey_(firstName, lastName) {
   return `${String(firstName || "").trim().toLowerCase()}\u0000${String(lastName || "").trim().toLowerCase()}`;
 }
 
-function getOrCreateSheet_(spreadsheet, tabName) {
-  const sheet = spreadsheet.getSheetByName(tabName) || spreadsheet.insertSheet(tabName);
+function prepareSheet_(sheet) {
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
     sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight("bold").setBackground("#dce9df");
